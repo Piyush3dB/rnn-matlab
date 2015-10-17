@@ -246,7 +246,7 @@ end  % end char_rnn
 
 %% Support functions
 function [mem, param] = adagrad_update(lr, param, dparam, mem)
-mem   = mem + dparam .* dparam;
+mem = mem + dparam .* dparam;
 param = param - lr * dparam ./ sqrt(mem + 1e-8);
 end
 
