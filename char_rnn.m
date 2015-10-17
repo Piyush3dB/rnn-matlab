@@ -52,8 +52,18 @@ mWhy = zeros(size(Why));
 mbh  = zeros(size(bh));
 mby  = zeros(size(by));
 
-%% Input data preparation
+%% Input and Target data preparation
+% char_to_ix (1 of k encoding)
+fn = @(x) ichars == x;
+idatapart = idata;
+inputs = arrayfun(fn, idatapart, 'UniformOutput', false);
+%inputs = arrayfun(@(x) ichars == x, idatapart);
+encInputs = double(cat(1, inputs{:})');
 
+% Target data preparation
+fn = @(x) find(ichars == x);
+tdatapart = idata;
+encTargets   = arrayfun(fn, tdatapart);
 
 %% Visualisation
 figure(1);
@@ -82,17 +92,10 @@ while carryOn
     
     %%% get inputs and targets
     % prepare inputs (we're sweeping from left to right in steps seq_length=25 long)
-    % char_to_ix (1 of k encoding)
-    fn = @(x) ichars == x;
-    idatapart = idata(p : p+seq_length-1);
-    inputs = arrayfun(fn, idatapart, 'UniformOutput', false);
-    %inputs = arrayfun(@(x) ichars == x, idatapart);
-    inputs = double(cat(1, inputs{:})');
+    inputs = encInputs(:,p : p+seq_length-1);
     
     %Target should be next character in sequence
-    fn = @(x) find(ichars == x);
-    tdatapart = idata(p+1 : p+seq_length);
-    targets   = arrayfun(fn, tdatapart);
+    targets = encTargets(:, p+1 : p+seq_length);
     
     %%% sample from model
     if mod(n, 100) == 0
