@@ -70,12 +70,23 @@ figure(1);
 clf;
 h_iters = [];
 h_sloss = [];
+h_loss  = [];
+hist = -log(1/vocab_size) * seq_length;;
 
 %% Start learning
 epochs = 0; % initialise num epochs
 n = 0;      % iteration counter
 p = 1;      % data pointer
-smooth_loss = -log(1/vocab_size) * seq_length;      % loss at iter=0
+
+
+
+
+loss = -log(1/vocab_size) * seq_length;
+smooth_loss = loss;
+b = 0.999; a = [1 -1+b];
+hist = loss;
+%[smooth_loss, hist] = filter(b, a, loss, hist);
+
 
 carryOn = true;
 while carryOn
@@ -107,9 +118,12 @@ while carryOn
         % Plot figure;
         h_iters = [h_iters ; n];
         h_sloss = [h_sloss ; smooth_loss];
-        figure(1);
-        plot(h_iters, h_sloss, '.-');
+        h_loss  = [h_loss  ; loss];
+        h = figure(1);
+        plot(h_iters, h_sloss, '*-'); hold on;
+        plot(h_iters, h_loss , '.-r');
         drawnow;
+        set(0, 'CurrentFigure', h)
     end
     
     %%% forward seq_length characters and get gradients
