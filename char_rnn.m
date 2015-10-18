@@ -53,17 +53,16 @@ mbh  = zeros(size(bh));
 mby  = zeros(size(by));
 
 %% Input and Target data preparation
+% ichars is dictionary
 % char_to_ix (1 of k encoding)
 fn = @(x) ichars == x;
-idatapart = idata;
-inputs = arrayfun(fn, idatapart, 'UniformOutput', false);
-%inputs = arrayfun(@(x) ichars == x, idatapart);
+inputs = arrayfun(fn, idata, 'UniformOutput', false);
 encInputs = double(cat(1, inputs{:})');
 
 % Target data preparation
+% Find the dictionary index of input characters.
 fn = @(x) find(ichars == x);
-tdatapart  = idata;
-encTargets = arrayfun(fn, tdatapart);
+encTargets = arrayfun(fn, idata);
 
 %% Visualisation
 figure(1);
@@ -80,18 +79,17 @@ epochs = 0; % initialise num epochs
 n = 0;      % iteration counter
 p = 1;      % data pointer
 
-
-
-
+%% Initialise loss and other
 loss = -log(1/vocab_size) * seq_length;
 smooth_loss = loss;
 b = 0.999; a = [1 -1+b];
 %hist = loss;
 %[smooth_loss, hist] = filter(b, a, loss, hist);
 
-
+%% RNN TRAIN
 carryOn = true;
 while carryOn
+    
     %%% reset after one pass over all data OR at the first iteration
     if p+seq_length >= data_size || n == 0
         epochs = epochs + 1;
@@ -103,7 +101,6 @@ while carryOn
     %%% get inputs and targets
     % prepare inputs (we're sweeping from left to right in steps seq_length=25 long)
     inputs = encInputs(:,p : p+seq_length-1);
-    
     %Target should be next character in sequence
     targets = encTargets(:, p+1 : p+seq_length);
     
@@ -160,15 +157,15 @@ while carryOn
     %%% forward seq_length characters and get gradients
     [loss, grads, hprev] = RNN_loss_function(inputs, targets, hprev);
     smooth_loss = smooth_loss * 0.999 + loss * 0.001;
-    % gradients contain: dWxh, dWhh, dWhy, dbh, dby
     
-    %%% update parameters with Adagrad
+    %%% Use gradients to update parameters with Adagrad
     [mWxh, Wxh] = adagrad_update(lr, Wxh, grads.dWxh, mWxh);
     [mWhh, Whh] = adagrad_update(lr, Whh, grads.dWhh, mWhh);
     [mWhy, Why] = adagrad_update(lr, Why, grads.dWhy, mWhy);
     [mbh , bh ] = adagrad_update(lr, bh , grads.dbh ,  mbh);
     [mby , by ] = adagrad_update(lr, by , grads.dby ,  mby);
     
+    %%% Update counters
     p = p + seq_length;
     n = n + 1;
 end
@@ -201,30 +198,36 @@ end
             % soft-max output and normalise
             ps(:, t) = exp(ys(:, t)) / sum(exp(ys(:, t)));
             
+            % targets(t) contains the index of the target prediction in ps
+            tp = ps(targets(t), t);
+            
             % cross-entropy loss summation
-            loss = loss - log(ps(targets(t), t));
+            loss = loss - log(tp);
         end
         
-        %%% return
+        % This gets returned
         hret = hs(:, end);
         
         
-        %%% backward pass
+        % Struct of grads computed during backward pass
         grads = struct('dWxh', zeros(size(Wxh)), ...
-            'dWhh', zeros(size(Whh)), ...
-            'dWhy', zeros(size(Why)), ...
-            'dbh' , zeros(size(bh )), ...
-            'dby' , zeros(size(by )));
+                       'dWhh', zeros(size(Whh)), ...
+                       'dWhy', zeros(size(Why)), ...
+                       'dbh' , zeros(size(bh )), ...
+                       'dby' , zeros(size(by )));
         
         dhnext = zeros(hidden_size, 1);
         
-        % Back propagation through time
+        % BPTT number of forward passes
         for t = nFP:-1:1
             
             dy = ps(:, t);
             
+            % Get index of target prediction
+            tpi = targets(t);
+            
             % backprop for y
-            dy(targets(t)) = dy(targets(t)) - 1;
+            dy(tp) = dy(tpi) - 1;
             
             grads.dWhy = grads.dWhy + dy * hs(:, t+1)';
             grads.dby  = grads.dby  + dy;
@@ -248,7 +251,6 @@ end
         grads.dWhy = max(min(grads.dWhy, 1), -1);
         grads.dbh  = max(min(grads.dbh,  1), -1);
         grads.dby  = max(min(grads.dby,  1), -1);
-        
         
     end
 

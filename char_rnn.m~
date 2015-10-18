@@ -53,17 +53,16 @@ mbh  = zeros(size(bh));
 mby  = zeros(size(by));
 
 %% Input and Target data preparation
+% ichars is dictionary
 % char_to_ix (1 of k encoding)
 fn = @(x) ichars == x;
-idatapart = idata;
-inputs = arrayfun(fn, idatapart, 'UniformOutput', false);
-%inputs = arrayfun(@(x) ichars == x, idatapart);
+inputs = arrayfun(fn, idata, 'UniformOutput', false);
 encInputs = double(cat(1, inputs{:})');
 
 % Target data preparation
+% Find the dictionary index of input characters.
 fn = @(x) find(ichars == x);
-tdatapart  = idata;
-encTargets = arrayfun(fn, tdatapart);
+encTargets = arrayfun(fn, idata);
 
 %% Visualisation
 figure(1);
@@ -130,17 +129,30 @@ while carryOn
         % Histogram of coefficients
         
         figure(2);
-        subplot(3,1,1);
+        %{
+        subplot(4,1,1);
+        plot(h_iters, h_sloss, '*-'); hold on;
+        plot(h_iters, h_loss , '.-r');
+        title('loss function')
+        %}
+        
+        subplot(4,1,2);
         rWxh = reshape(Wxh, size(Wxh,1)*size(Wxh,2), 1);
-        hist(rWxh, 100);
+        hist(rWxh, 100, 'r');
+        title('hist Wxh');
+        xlim([-4 4]);
         
-        subplot(3,1,2);
+        subplot(4,1,3);
         rWhh = reshape(Whh, size(Whh,1)*size(Whh,2), 1);
-        hist(rWhh, 100);
+        hist(rWhh, 50, 'r');
+        title('hist Whh');
+        xlim([-4 4]);
         
-        subplot(3,1,3);
+        subplot(4,1,4);
         rWhy = reshape(Why, size(Why,1)*size(Why,2), 1);
-        hist(rWhy, 100);
+        hist(rWhy, 50, 'FaceColor','r');
+        title('hist Why');
+        xlim([-4 4]);
         
     end
     
@@ -188,8 +200,9 @@ end
             % soft-max output and normalise
             ps(:, t) = exp(ys(:, t)) / sum(exp(ys(:, t)));
             
-            % cross-entropy loss
-            loss = loss - log(ps(targets(t), t));
+            % cross-entropy loss summation
+            vv = ps(targets(t), t);
+            loss = loss - log(vv);
         end
         
         %%% return
