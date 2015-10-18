@@ -72,6 +72,8 @@ h_iters = [];
 h_sloss = [];
 h_loss  = [];
 
+figure(2);
+clf;
 
 %% Start learning
 epochs = 0; % initialise num epochs
@@ -84,7 +86,7 @@ p = 1;      % data pointer
 loss = -log(1/vocab_size) * seq_length;
 smooth_loss = loss;
 b = 0.999; a = [1 -1+b];
-hist = loss;
+%hist = loss;
 %[smooth_loss, hist] = filter(b, a, loss, hist);
 
 
@@ -116,11 +118,30 @@ while carryOn
         h_iters = [h_iters ; n];
         h_sloss = [h_sloss ; smooth_loss];
         h_loss  = [h_loss  ; loss];
+        
+        % Loss function
         h = figure(1);
         plot(h_iters, h_sloss, '*-'); hold on;
         plot(h_iters, h_loss , '.-r');
+        title('loss function')
         drawnow;
         set(0, 'CurrentFigure', h)
+        
+        % Histogram of coefficients
+        
+        figure(2);
+        subplot(3,1,1);
+        rWxh = reshape(Wxh, size(Wxh,1)*size(Wxh,2), 1);
+        hist(rWxh, 100);
+        
+        subplot(3,1,2);
+        rWhh = reshape(Whh, size(Whh,1)*size(Whh,2), 1);
+        hist(rWhh, 100);
+        
+        subplot(3,1,3);
+        rWhy = reshape(Why, size(Why,1)*size(Why,2), 1);
+        hist(rWhy, 100);
+        
     end
     
     %%% forward seq_length characters and get gradients
@@ -164,7 +185,7 @@ end
             h2y = Why * hs(:, t+1);
             ys(:, t) = h2y + by;
             
-            % soft-max and normalise
+            % soft-max output and normalise
             ps(:, t) = exp(ys(:, t)) / sum(exp(ys(:, t)));
             
             % cross-entropy loss
@@ -183,15 +204,22 @@ end
             'dby' , zeros(size(by )));
         
         dhnext = zeros(hidden_size, 1);
-        for t = size(inputs, 2):-1:1
+        
+        % Back propagation through time
+        for t = nFP:-1:1
+            
             dy = ps(:, t);
-            dy(targets(t)) = dy(targets(t)) - 1; % backprop for y
+            
+            % backprop for y
+            dy(targets(t)) = dy(targets(t)) - 1;
+            
             grads.dWhy = grads.dWhy + dy * hs(:, t+1)';
             grads.dby  = grads.dby  + dy;
             
             % backprop into h
             dh = Why' * dy + dhnext;
-            dhraw = (1 - (hs(:, t+1) .* hs(:, t+1))) .* dh;     % backprop tanh non-linearity
+            % backprop tanh non-linearity
+            dhraw = (1 - (hs(:, t+1) .* hs(:, t+1))) .* dh;
             
             grads.dWhh = grads.dWhh + dhraw * hs(:, t)';
             grads.dbh  = grads.dbh  + dhraw;
@@ -246,7 +274,7 @@ end  % end char_rnn
 
 %% Support functions
 function [mem, param] = adagrad_update(lr, param, dparam, mem)
-mem = mem + dparam .* dparam;
+mem   = mem + dparam .* dparam;
 param = param - lr * dparam ./ sqrt(mem + 1e-8);
 end
 
