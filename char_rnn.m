@@ -130,17 +130,30 @@ while carryOn
         % Histogram of coefficients
         
         figure(2);
-        subplot(3,1,1);
+        %{
+        subplot(4,1,1);
+        plot(h_iters, h_sloss, '*-'); hold on;
+        plot(h_iters, h_loss , '.-r');
+        title('loss function')
+        %}
+        
+        subplot(4,1,2);
         rWxh = reshape(Wxh, size(Wxh,1)*size(Wxh,2), 1);
-        hist(rWxh, 100);
+        hist(rWxh, 100, 'r');
+        title('hist Wxh');
+        xlim([-4 4]);
         
-        subplot(3,1,2);
+        subplot(4,1,3);
         rWhh = reshape(Whh, size(Whh,1)*size(Whh,2), 1);
-        hist(rWhh, 100);
+        hist(rWhh, 50, 'r');
+        title('hist Whh');
+        xlim([-4 4]);
         
-        subplot(3,1,3);
+        subplot(4,1,4);
         rWhy = reshape(Why, size(Why,1)*size(Why,2), 1);
-        hist(rWhy, 100);
+        hist(rWhy, 50, 'FaceColor','r');
+        title('hist Why');
+        xlim([-4 4]);
         
     end
     
