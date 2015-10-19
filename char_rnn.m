@@ -221,13 +221,14 @@ end
         % BPTT number of forward passes
         for t = nFP:-1:1
             
+            % Softmax probabilities
             dy = ps(:, t);
             
             % Get index of target prediction
             tpi = targets(t);
             
             % backprop for y
-            dy(tp) = dy(tpi) - 1;
+            dy(tpi) = dy(tpi) - 1;
             
             grads.dWhy = grads.dWhy + dy * hs(:, t+1)';
             grads.dby  = grads.dby  + dy;
